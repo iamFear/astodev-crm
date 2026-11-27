@@ -1,4 +1,5 @@
 import * as data from '../data.js';
+import * as A from './actions.js';
 
 let started = false;
 
@@ -165,11 +166,14 @@ export function startApp() {
   }
 
   /* ---------- data writes ---------- */
-  function saveLead(id, patch) {
+  // opts.force: escribe todas las claves del patch sin compararlas con la copia local
+  // (que puede estar desactualizada hasta el siguiente refetch). Lo usa el deshacer.
+  function saveLead(id, patch, opts) {
     var cur = S.byId.get(id);
     if (!S.db || !cur) return Promise.resolve(false);
     var changed = {}, any = false;
-    Object.keys(patch).forEach(function (k) { if (!same(cur[k], patch[k])) { changed[k] = patch[k]; any = true; } });
+    var force = !!(opts && opts.force);
+    Object.keys(patch).forEach(function (k) { if (force || !same(cur[k], patch[k])) { changed[k] = patch[k]; any = true; } });
     if (!any) return Promise.resolve(false);
     changed.actualizado = new Date().toISOString();
     var prev = queues.get(id) || Promise.resolve();
@@ -183,29 +187,29 @@ export function startApp() {
     if (c === 'PGRST301' || c === 'PGRST303' || (e && e.status === 401)) return 'Tu sesión expiró. Recarga e inicia sesión de nuevo.';
     return 'No se pudo guardar' + (c ? ' (' + c + ')' : '') + '.';
   }
+  var lastUndo = 0; // solo la acción más reciente puede deshacerse
   function quick(id, patch, msg) {
     var cur = S.byId.get(id);
     if (!cur) return;
-    var before = {};
-    Object.keys(patch).forEach(function (k) { before[k] = cur[k] === undefined ? '' : cur[k]; });
+    var before = A.undoPatchFor(cur, patch);
+    var token = ++lastUndo;
     saveLead(id, patch).then(function (done) {
-      if (done) toast(msg, { action: { label: 'Deshacer', fn: function () { saveLead(id, before).catch(function (e) { toast(failMsg(e), { err: true }); }); } } });
+      if (!done) return;
+      // mantener la copia local al día para que el siguiente snapshot sea exacto
+      var c = S.byId.get(id);
+      if (c) Object.assign(c, patch);
+      toast(msg, { action: { label: 'Deshacer', fn: function () {
+        if (token !== lastUndo) { toast('Solo se puede deshacer la última acción.', { err: true }); return; }
+        saveLead(id, before, { force: true }).then(function () {
+          var c2 = S.byId.get(id);
+          if (c2) Object.assign(c2, before);
+        }).catch(function (e) { toast(failMsg(e), { err: true }); });
+      } } });
     }).catch(function (e) { toast(failMsg(e), { err: true }); });
   }
-  function patchFor(kind, l) {
-    var t = today();
-    if (kind === 'contactado') return { estado: 'contactado', ultimo_contacto: t, proximo_seguimiento: addDays(t, 3) };
-    if (kind === 'respondio') return { estado: 'respondio', ultimo_contacto: t, proximo_seguimiento: addDays(t, 2) };
-    if (kind === 'seguimiento') return { seguimientos: (l.seguimientos || 0) + 1, ultimo_contacto: t, proximo_seguimiento: addDays(t, 4) };
-    if (kind === 'descartar') return { estado: 'descartado', proximo_seguimiento: '' };
-    return {};
-  }
+  function patchFor(kind, l) { return A.patchFor(kind, l, today()); }
   function moveTo(l, est) {
-    var t = today(), p = { estado: est };
-    if (est === 'contactado' || est === 'respondio') p = patchFor(est, l);
-    else if (CLOSED[est]) p.proximo_seguimiento = '';
-    else if (est !== 'por_contactar') { p.ultimo_contacto = t; if (!l.proximo_seguimiento) p.proximo_seguimiento = addDays(t, 3); }
-    quick(l.id, p, l.nombre + ': ' + ESTADO_LABEL[est]);
+    quick(l.id, A.moveToPatch(l, est, today()), l.nombre + ': ' + ESTADO_LABEL[est]);
   }
 
   /* ---------- derived ---------- */
