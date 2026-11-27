@@ -269,3 +269,12 @@ td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-s
 .uid-row { display: flex; gap: 8px; align-items: stretch; margin: 10px 0 14px; }
 .uid-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: var(--f-mono); font-size: 12px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); }
 .uid-row .btn { width: auto; }
+
+/* Sustituyen estilos en línea (CSP sin 'unsafe-inline') */
+.actions.flush { margin-top: 0; }
+select.in.sel-nuevos { width: auto; min-height: 32px; padding: 3px 8px; }
+select.in.sel-move { min-height: 34px; padding: 3px 8px; font-size: 13px; }
+.col-empty { font-size: 12.5px; padding: 4px 2px; }
+.meta-line { font-size: 11.5px; margin: 10px 0 0; }
+p.flush-top { margin-top: 0; }
+.field.mb-12 { margin-bottom: 12px; }

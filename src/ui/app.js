@@ -334,7 +334,7 @@ export function startApp() {
     if (!due.length) frag.appendChild(h('div', { class: 'empty' }, h('strong', { text: 'Sin seguimientos pendientes' }), 'Cuando un lead tenga fecha de seguimiento hoy o antes, aparecerá aquí.'));
     else frag.appendChild(h('div', { class: 'list' }, due.map(leadCard)));
 
-    var sel = h('select', { class: 'in', id: 'sel-nuevos', 'aria-label': 'Cantidad de nuevos', style: 'width:auto;min-height:32px;padding:3px 8px', value: String(S.nuevosN) },
+    var sel = h('select', { class: 'in sel-nuevos', id: 'sel-nuevos', 'aria-label': 'Cantidad de nuevos', value: String(S.nuevosN) },
       [5, 10, 20].map(function (n) { return h('option', { value: n, text: String(n) }); }));
     sel.value = String(S.nuevosN);
     frag.appendChild(h('div', { class: 'sec-h' },
@@ -365,7 +365,7 @@ export function startApp() {
       items.sort(function (a, b) { return (a.proximo_seguimiento || '9') < (b.proximo_seguimiento || '9') ? -1 : 1; });
       items.forEach(function (l) {
         var dc = !CLOSED[l.estado] && l.proximo_seguimiento ? dueClass(l.proximo_seguimiento) : '';
-        var sel = h('select', { class: 'in', id: 'mv-' + l.id, 'data-change': 'move', 'data-id': l.id, 'aria-label': 'Mover ' + l.nombre, style: 'min-height:34px;padding:3px 8px;font-size:13px' },
+        var sel = h('select', { class: 'in sel-move', id: 'mv-' + l.id, 'data-change': 'move', 'data-id': l.id, 'aria-label': 'Mover ' + l.nombre },
           ESTADOS.map(function (e) { return h('option', { value: e, text: ESTADO_LABEL[e] }); }));
         sel.value = l.estado;
         col.appendChild(h('div', { class: 'mini' },
@@ -375,7 +375,7 @@ export function startApp() {
             l.proximo_seguimiento && !CLOSED[l.estado] ? h('span', { class: 'due ' + dc, text: fmtDate(l.proximo_seguimiento) }) : null),
           sel));
       });
-      if (!items.length) col.appendChild(h('div', { class: 'faint', style: 'font-size:12.5px;padding:4px 2px', text: 'Vacío' }));
+      if (!items.length) col.appendChild(h('div', { class: 'faint col-empty', text: 'Vacío' }));
       board.appendChild(col);
     });
     frag.appendChild(board);
@@ -667,12 +667,12 @@ export function startApp() {
 
     if (!isNew) {
       var wa = waUrl(l, waText(l)), mp = mapsUrl(l);
-      var links = h('div', { class: 'dsec' }, h('h3', { text: 'Enlaces' }), h('div', { class: 'actions', style: 'margin-top:0' },
+      var links = h('div', { class: 'dsec' }, h('h3', { text: 'Enlaces' }), h('div', { class: 'actions flush' },
         wa ? h('a', { class: 'btn sm primary', id: 'lnk-wa', href: wa, target: '_blank', rel: 'noopener', text: 'WhatsApp' }) : h('span', { class: 'btn sm', 'aria-disabled': 'true', text: 'Sin teléfono' }),
         mp ? h('a', { class: 'btn sm', id: 'lnk-maps', href: mp, target: '_blank', rel: 'noopener', text: 'Google Maps' }) : null,
         isHttps(l.web) ? h('a', { class: 'btn sm', id: 'lnk-web', href: l.web, target: '_blank', rel: 'noopener', text: 'Sitio web' }) : null));
       body.appendChild(links);
-      var cp = h('div', { class: 'dsec' }, h('h3', { text: 'Copiar mensaje' }), h('div', { class: 'actions', style: 'margin-top:0' },
+      var cp = h('div', { class: 'dsec' }, h('h3', { text: 'Copiar mensaje' }), h('div', { class: 'actions flush' },
         h('button', { class: 'btn sm', id: 'cp-msg1', type: 'button', 'data-copy': 'msg1', text: 'Mensaje 1' }),
         h('button', { class: 'btn sm', id: 'cp-msg2', type: 'button', 'data-copy': msg2Key(l), text: 'Mensaje 2' }),
         h('button', { class: 'btn sm', id: 'cp-seg', type: 'button', 'data-copy': 'seguimiento', text: 'Seguimiento' }),
@@ -683,7 +683,7 @@ export function startApp() {
     var grid = h('div', { class: 'grid2' });
     FIELDS.forEach(function (f) { grid.appendChild(fieldEl(f, l[f[0]])); });
     body.appendChild(h('div', { class: 'dsec' }, h('h3', { text: 'Datos' }), grid,
-      isNew ? null : h('p', { class: 'faint mono', style: 'font-size:11.5px;margin:10px 0 0', text: 'Creado ' + (l.creado || '') + ' · ID ' + l.id })));
+      isNew ? null : h('p', { class: 'faint mono meta-line', text: 'Creado ' + (l.creado || '') + ' · ID ' + l.id })));
 
     if (isNew) {
       body.appendChild(h('div', { class: 'dsec' }, h('h3', { text: 'Nota inicial' }),
@@ -761,11 +761,11 @@ export function startApp() {
 
   function buildTplDrawer(body, foot) {
     $('drawer-title').textContent = 'Plantillas de mensajes';
-    body.appendChild(h('p', { class: 'dim', style: 'margin-top:0', text: 'Usa {nombre} y {observacion}. En el mensaje 2, «Vi que {observacion}» se completa con la observación del lead.' }));
+    body.appendChild(h('p', { class: 'dim flush-top', text: 'Usa {nombre} y {observacion}. En el mensaje 2, «Vi que {observacion}» se completa con la observación del lead.' }));
     TPL_META.forEach(function (m) {
       var ta = h('textarea', { class: 'in', id: 't-' + m[0], rows: m[0].indexOf('msg2') === 0 ? 7 : 3 });
       ta.value = S.tpl[m[0]] || '';
-      body.appendChild(h('div', { class: 'field', style: 'margin-bottom:12px' }, h('label', { for: 't-' + m[0], text: m[1] }), ta));
+      body.appendChild(h('div', { class: 'field mb-12' }, h('label', { for: 't-' + m[0], text: m[1] }), ta));
     });
     foot.appendChild(h('span', { class: 'msg', id: 'drawer-msg', text: '' }));
     foot.appendChild(h('button', { class: 'btn ghost', id: 'btn-tpl-reset', type: 'button', text: 'Restaurar originales' }));
